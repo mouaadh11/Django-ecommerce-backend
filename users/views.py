@@ -38,8 +38,22 @@ class LogoutView(APIView):
     def post(self, request):
         try:
             refresh_token = request.data['refresh']
+            print("Received refresh token for logout:",
+                  refresh_token)  # Debug log
             token = RefreshToken(refresh_token)
+            print("Blacklisting token:", token)  # Debug log
+            # --- VERIFICATION DE SECURITÉ ---
+            # On vérifie si l'ID de l'utilisateur dans le Refresh Token
+            # est le même que celui qui fait la requête (request.user)
+            print("Token user ID:", type(int(token['user_id'])), "Request user ID:", type(request.user.id))  # Debug log
+            if int(token['user_id']) != int(request.user.id):
+                return Response(
+                    {'error': 'Token user mismatch. Unauthorized.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            # -------------------------------- 
             token.blacklist()       # Makes this token unusable
+            print("Token blacklisted successfully.")
             return Response({'message': 'Logged out successfully.'}, status=status.HTTP_200_OK)
         except Exception:
             return Response({'error': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)
