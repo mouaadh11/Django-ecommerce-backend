@@ -101,7 +101,7 @@ class OrderListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=request.user).prefetch_related('items', 'payment')
+        return Order.objects.filter(user=self.request.user).prefetch_related('items', 'payment')
 
 
 class OrderDetailView(generics.RetrieveAPIView):
