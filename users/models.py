@@ -30,7 +30,7 @@ class User(AbstractUser):
     We add our own fields below.
     """
     email = models.EmailField(unique=True)   # Override to make email unique
-    username = models.CharField(max_length=150, unique=True, blank=True, null=True)
+    username = models.CharField(max_length=150, unique=True, blank=True, default='') 
 
     phone = models.CharField(max_length=20, blank=True)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
@@ -38,8 +38,7 @@ class User(AbstractUser):
     objects = UserManager()  # Use our custom manager
     # Make email the login field instead of username
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []  # Still required for createsuperuser
-
+    REQUIRED_FIELDS = []
     def __str__(self):
         return self.email
 

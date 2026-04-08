@@ -32,7 +32,7 @@ class ProductImageInline(admin.TabularInline):
     form = ProductImageInlineForm
     extra = 1
     readonly_fields = ['image_preview']
-    fields = ['image_preview', 'image', 'is_primary']  # order matters
+    fields = ['image_preview', 'image', 'is_primary', 'alt_text', 'order' ]  # order matters
 
     def image_preview(self, obj):
         if obj.image:

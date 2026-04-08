@@ -23,7 +23,8 @@ class Order(models.Model):
         on_delete=models.SET_NULL,
         null=True, related_name='orders'
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='pending')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     # Snapshot of address at time of order (address may change later)
@@ -42,15 +43,19 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     """Each product line in an order — snapshot of price at purchase time."""
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
-    product_name = models.CharField(max_length=300)    # Snapshot: product name may change
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)  # Snapshot: price may change
+    # Snapshot: product name may change
+    product_name = models.CharField(max_length=300)
+    unit_price = models.DecimalField(
+        max_digits=10, decimal_places=2)  # Snapshot: price may change
     quantity = models.PositiveIntegerField()
 
-    @property
     def subtotal(self):
-        return self.unit_price * self.quantity
+        if self.unit_price is not None and self.quantity is not None:
+            return self.unit_price * self.quantity
+        return 0  # Ou une autre valeur par défaut cohérente
 
     def __str__(self):
         return f"{self.quantity}x {self.product_name}"
@@ -71,10 +76,13 @@ class Payment(models.Model):
         ('bank_transfer', 'Bank Transfer'),
     ]
 
-    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment')
+    order = models.OneToOneField(
+        Order, on_delete=models.CASCADE, related_name='payment')
     method = models.CharField(max_length=20, choices=METHOD_CHOICES)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    transaction_id = models.CharField(max_length=200, blank=True)  # From Stripe/PayPal
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='pending')
+    transaction_id = models.CharField(
+        max_length=200, blank=True)  # From Stripe/PayPal
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     paid_at = models.DateTimeField(null=True, blank=True)
 
