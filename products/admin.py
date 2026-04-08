@@ -1,12 +1,35 @@
+from django import forms
 from django.utils.html import format_html
 from django.contrib import admin
 
 # Register your models here.
 from .models import Category, Product, ProductImage
 
+from django.core.exceptions import ValidationError
+
+class ProductImageInlineForm(forms.ModelForm):
+    class Meta:
+        model = ProductImage
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        is_primary = cleaned_data.get('is_primary')
+        if is_primary:
+            qs = ProductImage.objects.filter(
+                product=self.instance.product,
+                is_primary=True
+            ).exclude(pk=self.instance.pk)
+            if qs.exists():
+                for img in qs:
+                    img.is_primary = False
+                    img.save()
+        return cleaned_data
+
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
+    form = ProductImageInlineForm
     extra = 1
     readonly_fields = ['image_preview']
     fields = ['image_preview', 'image', 'is_primary']  # order matters
@@ -32,6 +55,17 @@ class ProductAdmin(admin.ModelAdmin):
     inlines = [ProductImageInline]
     prepopulated_fields = {'slug': ('name',)}
 
+    def save_formset(self, request, form, formset, change):
+        instances = formset.save(commit=False)
+        for obj in instances:
+            if obj.is_primary:
+                ProductImage.objects.filter(
+                    product=obj.product,
+                    is_primary=True
+                ).exclude(pk=obj.pk).update(is_primary=False)
+            obj.save()
+        formset.save_m2m()
+
     def image_tag(self, obj):
         image = obj.images.filter(is_primary=True).first()
         if image and image.image:
@@ -56,7 +90,7 @@ class CategoryAdmin(admin.ModelAdmin):
     def image_tag(self, obj):
         if obj.image:
             return format_html(
-                '<a href="{}" target="_blank"><img src="{}" style="height:100px;width:100px;object-fit:cover;border-radius:6px;" /></a>',
+                '<a href="{}" target="_blank"><img src="{}" style="height:120px;width:120px;object-fit:cover;border-radius:6px;" /></a>',
                 obj.image.url,
                 obj.image.url
             )

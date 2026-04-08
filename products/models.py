@@ -1,5 +1,9 @@
 from django.db import models
+from django.db.models import Q
+from django.db import transaction
 from django.utils.text import slugify
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Category(models.Model):
@@ -72,6 +76,7 @@ class Product(models.Model):
         return self.name
 
 
+
 class ProductImage(models.Model):
     """A product can have multiple images."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
@@ -81,7 +86,25 @@ class ProductImage(models.Model):
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['product'],
+                condition=Q(is_primary=True),
+                name='unique_primary_image_per_product'
+            )
+        ]
         ordering = ['order']
 
+    def save(self, *args, **kwargs):
+        print(f"Saving ProductImage: product={self.product.name}, is_primary={self.is_primary}")
+        logger.warning(f"Saving ProductImage: product={self.product.name}, is_primary={self.is_primary}")
+        with transaction.atomic():
+            if self.is_primary:
+                ProductImage.objects.filter(
+                    product=self.product,
+                    is_primary=True
+                ).exclude(pk=self.pk).update(is_primary=False)
+
+            super().save(*args, **kwargs)
     def __str__(self):
         return f"Image for {self.product.name}"
